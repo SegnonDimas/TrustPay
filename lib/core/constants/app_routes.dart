@@ -7,5 +7,7 @@ class AppRoutes {
   static const String transactions = '/transactions';
   static const String accounts = '/accounts';
   static const String qrScanner = '/qr-scanner';
+  static const String stats = '/stats';
   static const String profile = '/profile';
+  static const String fundingChat = '/funding-chat';
 }

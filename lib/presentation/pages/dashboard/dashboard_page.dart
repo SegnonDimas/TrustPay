@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_routes.dart';
 import '../../../injection_container.dart';
 import '../../bloc/home/home_bloc.dart';
 import '../../bloc/home/home_event.dart';
@@ -20,6 +21,11 @@ class DashboardPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Tableau de bord'),
           actions: [
+            IconButton(
+              tooltip: 'Assistant financement',
+              onPressed: () => context.push(AppRoutes.fundingChat),
+              icon: const Icon(Icons.support_agent_outlined),
+            ),
             IconButton(
               onPressed: () {},
               icon: const Icon(Icons.notifications_none_outlined),

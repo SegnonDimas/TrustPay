@@ -23,4 +23,8 @@ class ApiConfig {
   static const String statisticsSummary = '$apiPrefix/statistics/summary/';
   static const String statisticsByCategory = '$apiPrefix/statistics/by-category/';
   static const String statisticsTrends = '$apiPrefix/statistics/trends/';
+
+  // Funding RAG
+  static const String fundingAsk = '$apiPrefix/funding/ask/';
+  static const String fundingSources = '$apiPrefix/funding/sources/';
 }

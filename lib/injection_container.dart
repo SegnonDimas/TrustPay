@@ -6,19 +6,23 @@ import 'data/datasources/local/transaction_local_datasource.dart';
 import 'data/datasources/remote/account_remote_datasource.dart';
 import 'data/datasources/remote/auth_remote_datasource.dart';
 import 'data/datasources/remote/category_remote_datasource.dart';
+import 'data/datasources/remote/chat_remote_datasource.dart';
 import 'data/datasources/remote/statistics_remote_datasource.dart';
 import 'data/datasources/remote/transaction_remote_datasource.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
+import 'data/repositories/chat_repository_impl.dart';
 import 'data/repositories/statistics_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
 import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/auth_repository.dart';
 import 'domain/repositories/category_repository.dart';
+import 'domain/repositories/chat_repository.dart';
 import 'domain/repositories/statistics_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
+import 'presentation/bloc/chat/chat_bloc.dart';
 import 'presentation/bloc/home/home_bloc.dart';
 import 'presentation/bloc/statistics/statistics_bloc.dart';
 import 'presentation/bloc/transaction/transaction_bloc.dart';
@@ -37,6 +41,7 @@ Future<void> init() async {
   sl.registerFactory(() => TransactionBloc(transactionRepository: sl()));
   sl.registerFactory(() => AuthBloc(authRepository: sl()));
   sl.registerFactory(() => StatisticsBloc(statisticsRepository: sl()));
+  sl.registerFactory(() => ChatBloc(chatRepository: sl()));
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
@@ -50,6 +55,9 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<CategoryRepository>(
     () => CategoryRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<ChatRepository>(
+    () => ChatRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(
@@ -76,6 +84,9 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<CategoryRemoteDataSource>(
     () => CategoryRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(sl()),
   );
   sl.registerLazySingleton<TransactionRemoteDataSource>(
     () => TransactionRemoteDataSourceImpl(sl()),

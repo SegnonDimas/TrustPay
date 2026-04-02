@@ -15,6 +15,8 @@ import '../../presentation/pages/transactions/add_transaction_page.dart';
 import '../../presentation/pages/categories/categories_page.dart';
 import '../../presentation/pages/statistics/statistics_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
+import '../../presentation/pages/chat/chat_page.dart';
+import '../../presentation/bloc/chat/chat_bloc.dart';
 import '../../presentation/bloc/transaction/transaction_bloc.dart';
 import '../constants/app_routes.dart';
 
@@ -60,6 +62,14 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const GenerateQrPage(),
       ),
+      GoRoute(
+        path: AppRoutes.fundingChat,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<ChatBloc>(),
+          child: const ChatPage(),
+        ),
+      ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => MainShell(child: child),
@@ -77,7 +87,7 @@ class AppRouter {
             builder: (context, state) => const QrScannerPage(),
           ),
           GoRoute(
-            path: '/stats',
+            path: AppRoutes.stats,
             builder: (context, state) => const StatisticsPage(),
           ),
           GoRoute(
