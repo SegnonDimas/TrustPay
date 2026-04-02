@@ -12,6 +12,7 @@ import '../../presentation/pages/main_shell.dart';
 import '../../presentation/pages/qr_scanner/qr_scanner_page.dart';
 import '../../presentation/pages/qr_scanner/generate_qr_page.dart';
 import '../../presentation/pages/transactions/add_transaction_page.dart';
+import '../../presentation/pages/transactions/transactions_history_page.dart';
 import '../../presentation/pages/categories/categories_page.dart';
 import '../../presentation/pages/statistics/statistics_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
@@ -51,6 +52,11 @@ class AppRouter {
           create: (_) => sl<TransactionBloc>(),
           child: const AddTransactionPage(),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.transactions,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TransactionsHistoryPage(),
       ),
       GoRoute(
         path: '/categories',

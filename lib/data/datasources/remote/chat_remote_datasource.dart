@@ -12,7 +12,6 @@ abstract class ChatRemoteDataSource {
     int topK,
     String? country,
     String? language,
-    String? preferredLanguage,
   });
 
   Future<List<FundingSource>> getFundingSources();
@@ -84,7 +83,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     int topK = 5,
     String? country,
     String? language,
-    String? preferredLanguage,
   }) async {
     try {
       final payload = <String, dynamic>{
@@ -92,8 +90,6 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         'top_k': topK,
         if (country != null && country.trim().isNotEmpty) 'country': country.trim(),
         if (language != null && language.trim().isNotEmpty) 'language': language.trim(),
-        if (preferredLanguage != null && preferredLanguage.trim().isNotEmpty)
-          'preferred_language': preferredLanguage.trim(),
       };
       final response = await _dio.post<Map<String, dynamic>>(
         ApiConfig.fundingAsk,

@@ -4,21 +4,27 @@ import 'core/network/dio_client.dart';
 import 'data/datasources/local/auth_local_datasource.dart';
 import 'data/datasources/local/transaction_local_datasource.dart';
 import 'data/datasources/remote/account_remote_datasource.dart';
+import 'data/datasources/remote/accounting_remote_datasource.dart';
 import 'data/datasources/remote/auth_remote_datasource.dart';
 import 'data/datasources/remote/category_remote_datasource.dart';
 import 'data/datasources/remote/chat_remote_datasource.dart';
+import 'data/datasources/remote/export_remote_datasource.dart';
 import 'data/datasources/remote/statistics_remote_datasource.dart';
 import 'data/datasources/remote/transaction_remote_datasource.dart';
 import 'data/repositories/account_repository_impl.dart';
+import 'data/repositories/accounting_repository_impl.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/category_repository_impl.dart';
 import 'data/repositories/chat_repository_impl.dart';
+import 'data/repositories/export_repository_impl.dart';
 import 'data/repositories/statistics_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
 import 'domain/repositories/account_repository.dart';
+import 'domain/repositories/accounting_repository.dart';
 import 'domain/repositories/auth_repository.dart';
 import 'domain/repositories/category_repository.dart';
 import 'domain/repositories/chat_repository.dart';
+import 'domain/repositories/export_repository.dart';
 import 'domain/repositories/statistics_repository.dart';
 import 'domain/repositories/transaction_repository.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
@@ -40,7 +46,12 @@ Future<void> init() async {
   );
   sl.registerFactory(() => TransactionBloc(transactionRepository: sl()));
   sl.registerFactory(() => AuthBloc(authRepository: sl()));
-  sl.registerFactory(() => StatisticsBloc(statisticsRepository: sl()));
+  sl.registerFactory(
+    () => StatisticsBloc(
+      statisticsRepository: sl(),
+      accountingRepository: sl(),
+    ),
+  );
   sl.registerFactory(() => ChatBloc(chatRepository: sl()));
 
   // Repositories
@@ -53,11 +64,17 @@ Future<void> init() async {
   sl.registerLazySingleton<AccountRepository>(
     () => AccountRepositoryImpl(remoteDataSource: sl()),
   );
+  sl.registerLazySingleton<AccountingRepository>(
+    () => AccountingRepositoryImpl(remoteDataSource: sl()),
+  );
   sl.registerLazySingleton<CategoryRepository>(
     () => CategoryRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton<ChatRepository>(
     () => ChatRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<ExportRepository>(
+    () => ExportRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(
@@ -93,6 +110,12 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<StatisticsRemoteDataSource>(
     () => StatisticsRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<AccountingRemoteDataSource>(
+    () => AccountingRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<ExportRemoteDataSource>(
+    () => ExportRemoteDataSourceImpl(sl()),
   );
 
   // Core

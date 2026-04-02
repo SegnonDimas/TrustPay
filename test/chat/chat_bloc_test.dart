@@ -13,7 +13,6 @@ class _SuccessChatRepository implements ChatRepository {
     int topK = 5,
     String? country,
     String? language,
-    String? preferredLanguage,
   }) async {
     return const ChatResponse(
       answer: 'Reponse assistant',
@@ -62,7 +61,6 @@ class _ErrorChatRepository implements ChatRepository {
     int topK = 5,
     String? country,
     String? language,
-    String? preferredLanguage,
   }) {
     throw Exception('network error');
   }

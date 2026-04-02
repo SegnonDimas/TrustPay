@@ -6,7 +6,7 @@ import '../../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
   Future<Map<String, String>> login({
-    required String email,
+    required String identifier,
     required String password,
   });
 
@@ -26,14 +26,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<Map<String, String>> login({
-    required String email,
+    required String identifier,
     required String password,
   }) async {
     try {
+      final normalized = identifier.trim();
+      final isEmail = normalized.contains('@');
       final response = await _dio.post<Map<String, dynamic>>(
         ApiConfig.login,
         data: {
-          'email': email.trim(),
+          'identifier': normalized,
+          if (isEmail) 'email': normalized else 'phone_number': normalized,
           'password': password,
         },
       );

@@ -20,7 +20,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(state.copyWith(status: AuthStatus.loading, message: null));
     try {
-      await authRepository.login(email: event.email, password: event.password);
+      await authRepository.login(
+        identifier: event.identifier,
+        password: event.password,
+      );
       final user = await authRepository.getProfile();
       emit(state.copyWith(status: AuthStatus.authenticated, user: user));
     } catch (e) {
@@ -42,7 +45,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
         userType: event.userType,
       );
-      await authRepository.login(email: event.email, password: event.password);
+      await authRepository.login(
+        identifier: event.email,
+        password: event.password,
+      );
       final user = await authRepository.getProfile();
       emit(state.copyWith(status: AuthStatus.authenticated, user: user));
     } catch (e) {

@@ -39,7 +39,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     try {
       final response = await chatRepository.askFunding(
         question: question,
-        preferredLanguage: event.preferredLanguage,
+        language: event.language,
       );
       final assistantMessage = ChatMessage(
         text: response.answer,

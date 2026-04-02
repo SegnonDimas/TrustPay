@@ -9,15 +9,15 @@ abstract class ChatEvent extends Equatable {
 
 class SendChatMessage extends ChatEvent {
   final String question;
-  final String? preferredLanguage;
+  final String? language;
 
   const SendChatMessage(
     this.question, {
-    this.preferredLanguage,
+    this.language,
   });
 
   @override
-  List<Object?> get props => [question, preferredLanguage];
+  List<Object?> get props => [question, language];
 }
 
 class LoadFundingSources extends ChatEvent {}

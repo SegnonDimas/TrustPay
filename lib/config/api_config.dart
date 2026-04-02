@@ -24,6 +24,16 @@ class ApiConfig {
   static const String statisticsByCategory = '$apiPrefix/statistics/by-category/';
   static const String statisticsTrends = '$apiPrefix/statistics/trends/';
 
+  // Accounting
+  static const String accountingPeriod = '$apiPrefix/accounting/period/';
+  static const String accountingBilans = '$apiPrefix/accounting/bilans/';
+  static const String accountingKpis = '$apiPrefix/accounting/kpis/';
+  static const String accountingExportCsv = '$apiPrefix/accounting/export/csv/';
+
+  // Export
+  static const String exportCsv = '$apiPrefix/export/csv/';
+  static const String exportJson = '$apiPrefix/export/json/';
+
   // Funding RAG
   static const String fundingAsk = '$apiPrefix/funding/ask/';
   static const String fundingSources = '$apiPrefix/funding/sources/';

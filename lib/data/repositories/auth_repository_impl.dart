@@ -28,11 +28,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> login({
-    required String email,
+    required String identifier,
     required String password,
   }) async {
     final tokens = await remoteDataSource.login(
-      email: email,
+      identifier: identifier,
       password: password,
     );
     final access = tokens['access'] ?? '';

@@ -66,7 +66,10 @@ class DashboardPage extends StatelessWidget {
                       const SizedBox(height: 24),
                       _buildFinancialScore(context),
                       const SizedBox(height: 24),
-                      _buildSectionHeader('Transactions récentes', () {}),
+                      _buildSectionHeader(
+                        'Transactions récentes',
+                        () => context.push(AppRoutes.transactions),
+                      ),
                       const SizedBox(height: 12),
                       ...state.transactions.map((t) => TransactionItem(transaction: t)),
                       const SizedBox(height: 80), // Space for FAB
@@ -229,7 +232,7 @@ class DashboardPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Vue statistique API',
+                    'statistique',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(

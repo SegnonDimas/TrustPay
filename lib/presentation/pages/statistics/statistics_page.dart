@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../domain/repositories/accounting_repository.dart';
 import '../../../domain/repositories/statistics_repository.dart';
 import '../../../injection_container.dart';
 import '../../bloc/statistics/statistics_bloc.dart';
@@ -47,6 +48,11 @@ class StatisticsPage extends StatelessWidget {
                   const SizedBox(height: 24),
                   _buildSummaryCards(summary),
                   const SizedBox(height: 24),
+                  _buildAccountingInsights(
+                    state.accountingKpis,
+                    state.accountingBilans,
+                  ),
+                  const SizedBox(height: 24),
                   _buildCategoryBreakdown(state.categories),
                 ],
               ),
@@ -65,6 +71,16 @@ class StatisticsPage extends StatelessWidget {
 
   Widget _buildChartSection(BuildContext context, List<TrendPoint> trends) {
     final displayPoints = trends.take(4).toList();
+    final maxValue = displayPoints.fold<double>(
+      0,
+      (acc, item) => [
+        acc,
+        item.income.abs(),
+        item.expense.abs(),
+      ].reduce((a, b) => a > b ? a : b),
+    );
+    final chartMaxY = maxValue <= 0 ? 1.0 : maxValue * 1.2;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -84,7 +100,8 @@ class StatisticsPage extends StatelessWidget {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: 20,
+                minY: 0,
+                maxY: chartMaxY,
                 barTouchData: BarTouchData(enabled: false),
                 titlesData: const FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
@@ -234,6 +251,141 @@ class StatisticsPage extends StatelessWidget {
             color: color,
             minHeight: 6,
             borderRadius: BorderRadius.circular(3),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountingInsights(
+    AccountingKpis kpis,
+    List<AccountingBilanPeriod> bilans,
+  ) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'fr_BJ',
+      symbol: 'FCFA',
+      decimalDigits: 0,
+    );
+    final growthText = kpis.revenueGrowthRatePct == null
+        ? 'N/A'
+        : '${kpis.revenueGrowthRatePct!.toStringAsFixed(1)}%';
+    final variabilityText = kpis.revenueVariabilityCoefficient == null
+        ? 'N/A'
+        : kpis.revenueVariabilityCoefficient!.toStringAsFixed(2);
+    final recentBilans = bilans.length > 4
+        ? bilans.sublist(bilans.length - 4)
+        : bilans;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bilan financier',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAccountingMetric(
+                  'CA periode',
+                  currencyFormat.format(kpis.totalRevenue),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAccountingMetric(
+                  'Croissance',
+                  growthText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAccountingMetric(
+                  'Ticket moyen',
+                  kpis.averageIncomeTicket == null
+                      ? 'N/A'
+                      : currencyFormat.format(kpis.averageIncomeTicket),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAccountingMetric(
+                  'Variabilite',
+                  variabilityText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildAccountingMetric(
+            'Transactions',
+            '${kpis.transactionCount}',
+          ),
+          if (recentBilans.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Bilans mensuels recents',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...recentBilans.map(
+              (period) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(period.label),
+                    Text(
+                      currencyFormat.format(period.netResult),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: period.netResult >= 0
+                            ? AppColors.success
+                            : AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountingMetric(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],
       ),

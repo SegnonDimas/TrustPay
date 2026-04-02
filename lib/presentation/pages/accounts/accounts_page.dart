@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/account.dart';
+import '../../../domain/entities/transaction.dart';
 import '../../../domain/repositories/account_repository.dart';
+import '../../../domain/repositories/transaction_repository.dart';
 import '../../../injection_container.dart';
+import '../../widgets/transaction_item.dart';
 
 class AccountsPage extends StatefulWidget {
   const AccountsPage({super.key});
@@ -14,18 +17,27 @@ class AccountsPage extends StatefulWidget {
 
 class _AccountsPageState extends State<AccountsPage> {
   late final AccountRepository _accountRepository;
-  late Future<List<Account>> _accountsFuture;
+  late final TransactionRepository _transactionRepository;
+  late Future<_AccountsPageData> _pageFuture;
+  final Set<String> _expandedAccountIds = <String>{};
 
   @override
   void initState() {
     super.initState();
     _accountRepository = sl<AccountRepository>();
-    _accountsFuture = _accountRepository.getAccounts();
+    _transactionRepository = sl<TransactionRepository>();
+    _pageFuture = _loadPageData();
+  }
+
+  Future<_AccountsPageData> _loadPageData() async {
+    final accounts = await _accountRepository.getAccounts();
+    final transactions = await _transactionRepository.getTransactions();
+    return _AccountsPageData(accounts: accounts, transactions: transactions);
   }
 
   void _reload() {
     setState(() {
-      _accountsFuture = _accountRepository.getAccounts();
+      _pageFuture = _loadPageData();
     });
   }
 
@@ -383,8 +395,8 @@ class _AccountsPageState extends State<AccountsPage> {
         ),
         backgroundColor: AppColors.primary,
       ),
-      body: FutureBuilder<List<Account>>(
-        future: _accountsFuture,
+      body: FutureBuilder<_AccountsPageData>(
+        future: _pageFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -394,7 +406,9 @@ class _AccountsPageState extends State<AccountsPage> {
             return Center(child: Text('Erreur chargement comptes: ${snapshot.error}'));
           }
 
-          final accounts = snapshot.data ?? const <Account>[];
+          final pageData = snapshot.data;
+          final accounts = pageData?.accounts ?? const <Account>[];
+          final allTransactions = pageData?.transactions ?? const <Transaction>[];
           if (accounts.isEmpty) {
             return RefreshIndicator(
               onRefresh: () async => _reload(),
@@ -416,45 +430,96 @@ class _AccountsPageState extends State<AccountsPage> {
                 final provider = account.type == AccountType.mobileMoney
                     ? account.provider
                     : null;
-                return ListTile(
-                  tileColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+                final isExpanded = _expandedAccountIds.contains(account.id);
+                final accountTransactions = allTransactions.where((tx) {
+                  return tx.accountId == account.id || tx.toAccountId == account.id;
+                }).toList();
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
-                    child: Icon(
-                      account.type == AccountType.bank
-                          ? Icons.account_balance
-                          : account.type == AccountType.mobileMoney
-                              ? Icons.phone_android
-                              : Icons.payments,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  title: Text(account.name),
-                  subtitle: Text(
-                    provider == null
-                        ? '${account.balance.toStringAsFixed(0)} ${account.currency}'
-                        : '$provider • ${account.balance.toStringAsFixed(0)} ${account.currency}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Column(
                     children: [
-                      IconButton(
-                        onPressed: () => _editAccount(account),
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                      IconButton(
-                        onPressed: () => _deleteAccount(account),
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: AppColors.error,
+                      ListTile(
+                        onTap: () {
+                          setState(() {
+                            if (isExpanded) {
+                              _expandedAccountIds.remove(account.id);
+                            } else {
+                              _expandedAccountIds.add(account.id);
+                            }
+                          });
+                        },
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          child: Icon(
+                            account.type == AccountType.bank
+                                ? Icons.account_balance
+                                : account.type == AccountType.mobileMoney
+                                    ? Icons.phone_android
+                                    : Icons.payments,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        title: Text(account.name),
+                        subtitle: Text(
+                          provider == null
+                              ? '${account.balance.toStringAsFixed(0)} ${account.currency}'
+                              : '$provider • ${account.balance.toStringAsFixed(0)} ${account.currency}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              color: AppColors.textSecondary,
+                            ),
+                            IconButton(
+                              onPressed: () => _editAccount(account),
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
+                            IconButton(
+                              onPressed: () => _deleteAccount(account),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      if (isExpanded)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          child: Column(
+                            children: [
+                              const Divider(height: 1),
+                              const SizedBox(height: 10),
+                              if (accountTransactions.isEmpty)
+                                const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    'Aucune transaction sur ce compte.',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...accountTransactions.map(
+                                  (tx) => TransactionItem(transaction: tx),
+                                ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 );
@@ -467,4 +532,14 @@ class _AccountsPageState extends State<AccountsPage> {
       ),
     );
   }
+}
+
+class _AccountsPageData {
+  final List<Account> accounts;
+  final List<Transaction> transactions;
+
+  const _AccountsPageData({
+    required this.accounts,
+    required this.transactions,
+  });
 }

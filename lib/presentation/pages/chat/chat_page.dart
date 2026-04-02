@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/chat_citation.dart';
@@ -18,22 +20,161 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _questionController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+  bool _isSpeechAvailable = false;
+  bool _isListening = false;
+  String? _speechError;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    try {
+      final available = await _speechToText.initialize();
+      if (!mounted) return;
+      setState(() {
+        _isSpeechAvailable = available;
+      });
+    } on MissingPluginException {
+      if (!mounted) return;
+      setState(() {
+        _isSpeechAvailable = false;
+        _speechError = "La reconnaissance vocale n'est pas disponible sur cet appareil.";
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSpeechAvailable = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
+    try {
+      _speechToText.cancel();
+    } on MissingPluginException {
+      // Ignore if plugin unavailable on this platform.
+    }
     _questionController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
+  Future<void> _toggleVoiceCapture() async {
+    if (_isListening) {
+      await _stopVoiceCapture();
+      return;
+    }
+    await _startVoiceCapture();
+  }
+
+  Future<void> _startVoiceCapture() async {
+    if (!_isSpeechAvailable) {
+      await _initSpeech();
+      if (!_isSpeechAvailable) return;
+    }
+    final locale = Localizations.localeOf(context).languageCode;
+    final localeId = switch (locale) {
+      'fr' => 'fr_FR',
+      'en' => 'en_US',
+      _ => null,
+    };
+    final startedResult = await _speechToText.listen(
+      localeId: localeId,
+      partialResults: true,
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() {
+          _questionController.text = result.recognizedWords;
+          _questionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: _questionController.text.length),
+          );
+        });
+      },
+      onSoundLevelChange: (_) {},
+    );
+    final started = startedResult is bool ? startedResult : _speechToText.isListening;
+    if (!mounted) return;
+    setState(() {
+      _isListening = started;
+      _speechError = started ? null : "Impossible de demarrer l'ecoute vocale.";
+    });
+  }
+
+  Future<void> _stopVoiceCapture() async {
+    await _speechToText.stop();
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+    });
+  }
+
+  String _detectQuestionLanguage(String question) {
+    final text = question.toLowerCase();
+    final tokens = text
+        .split(RegExp(r'[^a-zA-ZÀ-ÿ]+'))
+        .where((item) => item.trim().isNotEmpty)
+        .toSet();
+
+    const english = {
+      'what',
+      'where',
+      'funding',
+      'loan',
+      'business',
+      'eligible',
+      'requirements',
+    };
+    const french = {
+      'quel',
+      'quels',
+      'quelle',
+      'quelles',
+      'financement',
+      'financements',
+      'credit',
+      'subvention',
+      'entreprise',
+      'pme',
+    };
+    const yoruba = {'owo', 'kini', 'awon', 'ise'};
+    const fon = {'gbeta', 'wema', 'kpin', 'xo'};
+
+    final scoreEn = tokens.intersection(english).length;
+    final scoreFr = tokens.intersection(french).length;
+    final scoreYo = tokens.intersection(yoruba).length;
+    final scoreFon = tokens.intersection(fon).length;
+
+    if (scoreYo > 0 && scoreYo >= scoreEn && scoreYo >= scoreFr && scoreYo >= scoreFon) {
+      return 'yo';
+    }
+    if (scoreFon > 0 && scoreFon >= scoreEn && scoreFon >= scoreFr && scoreFon >= scoreYo) {
+      return 'fon';
+    }
+    if (scoreFr > 0 && scoreFr >= scoreEn) {
+      return 'fr';
+    }
+    if (scoreEn > 0) {
+      return 'en';
+    }
+    if (RegExp(r'[éèàùç]').hasMatch(text)) {
+      return 'fr';
+    }
+    return Localizations.localeOf(context).languageCode;
+  }
+
   void _sendQuestion() {
     final question = _questionController.text.trim();
     if (question.isEmpty) return;
-    final preferredLanguage = Localizations.localeOf(context).languageCode;
+    final detectedLanguage = _detectQuestionLanguage(question);
     context.read<ChatBloc>().add(
           SendChatMessage(
             question,
-            preferredLanguage: preferredLanguage,
+            language: detectedLanguage,
           ),
         );
     _questionController.clear();
@@ -91,6 +232,27 @@ class _ChatPageState extends State<ChatPage> {
         ),
         body: Column(
           children: [
+            if (_isListening || _speechError != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _isListening
+                      ? AppColors.primary.withOpacity(0.1)
+                      : AppColors.error.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _isListening
+                      ? 'Ecoute en cours... Parlez maintenant.'
+                      : (_speechError ?? ''),
+                  style: TextStyle(
+                    color: _isListening ? AppColors.primary : AppColors.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             Expanded(
               child: BlocBuilder<ChatBloc, ChatState>(
                 builder: (context, state) {
@@ -138,6 +300,14 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      onPressed: _isSpeechAvailable || _isListening ? _toggleVoiceCapture : null,
+                      icon: Icon(
+                        _isListening ? Icons.mic_off_outlined : Icons.mic_none_outlined,
+                      ),
+                      tooltip: _isListening ? 'Arreter la dictée' : 'Dicter la question',
                     ),
                     const SizedBox(width: 8),
                     BlocBuilder<ChatBloc, ChatState>(

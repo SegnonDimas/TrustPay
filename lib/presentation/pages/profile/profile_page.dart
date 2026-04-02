@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../domain/repositories/export_repository.dart';
 import '../../../injection_container.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
@@ -53,6 +58,9 @@ class ProfilePage extends StatelessWidget {
                         _buildPreferenceItem(Icons.dark_mode_outlined, 'Mode Sombre', Switch(value: false, onChanged: (v) {})),
                         _buildPreferenceItem(Icons.euro_outlined, 'Devise', const Text('FCFA', style: TextStyle(fontWeight: FontWeight.bold))),
                         const SizedBox(height: 40),
+                        _buildSectionTitle('Export des données'),
+                        _buildExportActions(context),
+                        const SizedBox(height: 28),
                         _buildLogoutButton(context),
                         const SizedBox(height: 20),
                         const Text('Version 1.0.0', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
@@ -204,5 +212,173 @@ class ProfilePage extends StatelessWidget {
         child: const Text('Déconnexion', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
+  }
+
+  Widget _buildExportActions(BuildContext context) {
+    return Column(
+      children: [
+        _buildExportItem(
+          context: context,
+          icon: Icons.table_view_outlined,
+          title: 'Transactions CSV',
+          subtitle: 'Exporte les transactions au format tableur',
+          onTap: () async {
+            final repo = sl<ExportRepository>();
+            final bytes = await repo.exportTransactionsCsv();
+            await _saveAndNotify(
+              context: context,
+              fileName: 'finetrack_transactions.csv',
+              bytes: bytes,
+            );
+          },
+        ),
+        _buildExportItem(
+          context: context,
+          icon: Icons.account_balance_outlined,
+          title: 'Bilans comptables CSV',
+          subtitle: 'Exporte les bilans mensuels des 6 derniers mois',
+          onTap: () async {
+            final repo = sl<ExportRepository>();
+            final now = DateTime.now();
+            final startDate = DateTime(now.year, now.month - 5, 1);
+            final bytes = await repo.exportAccountingBilansCsv(
+              granularity: 'monthly',
+              startDate: startDate,
+              endDate: now,
+            );
+            await _saveAndNotify(
+              context: context,
+              fileName: 'finetrack_bilans.csv',
+              bytes: bytes,
+            );
+          },
+        ),
+        _buildExportItem(
+          context: context,
+          icon: Icons.backup_outlined,
+          title: 'Sauvegarde JSON',
+          subtitle: 'Backup complet des données utilisateur',
+          onTap: () async {
+            final repo = sl<ExportRepository>();
+            final jsonMap = await repo.exportBackupJson();
+            final payload = const JsonEncoder.withIndent('  ').convert(jsonMap);
+            await _saveAndNotify(
+              context: context,
+              fileName: 'finetrack_backup.json',
+              bytes: utf8.encode(payload),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildExportItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Future<void> Function() onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: AppColors.primary),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.download_outlined),
+        onTap: () => _runExport(context, onTap),
+      ),
+    );
+  }
+
+  Future<void> _runExport(
+    BuildContext context,
+    Future<void> Function() action,
+  ) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      await action();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export échoué: $e')),
+        );
+      }
+    } finally {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+  }
+
+  Future<void> _saveAndNotify({
+    required BuildContext context,
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final dir = await _resolveExportDirectory();
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(bytes, flush: true);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fichier exporté: ${file.path}')),
+      );
+    }
+  }
+
+  Future<Directory> _resolveExportDirectory() async {
+    try {
+      final downloads = await getDownloadsDirectory();
+      if (downloads != null) {
+        if (!await downloads.exists()) {
+          await downloads.create(recursive: true);
+        }
+        return downloads;
+      }
+    } catch (_) {
+      // Fallbacks below.
+    }
+
+    if (Platform.isAndroid) {
+      try {
+        final dirs = await getExternalStorageDirectories(
+          type: StorageDirectory.downloads,
+        );
+        if (dirs != null && dirs.isNotEmpty) {
+          final dir = dirs.first;
+          if (!await dir.exists()) {
+            await dir.create(recursive: true);
+          }
+          return dir;
+        }
+      } catch (_) {
+        // Ignore and continue.
+      }
+
+      try {
+        final publicDownloads = Directory('/storage/emulated/0/Download');
+        if (!await publicDownloads.exists()) {
+          await publicDownloads.create(recursive: true);
+        }
+        return publicDownloads;
+      } catch (_) {
+        // Final fallback below.
+      }
+    }
+
+    final appDocs = await getApplicationDocumentsDirectory();
+    if (!await appDocs.exists()) {
+      await appDocs.create(recursive: true);
+    }
+    return appDocs;
   }
 }
