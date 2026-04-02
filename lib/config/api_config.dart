@@ -1,6 +1,10 @@
 class ApiConfig {
   static const String baseUrl = 'https://finetrack-22e5.onrender.com';
   static const String apiPrefix = '/api';
+  static const String openRouterBaseUrl =
+      'https://openrouter.ai/api/v1/chat/completions';
+  static const String openRouterApiKey =
+      String.fromEnvironment('OPENROUTER_API_KEY');
 
   // Auth
   static const String login = '$apiPrefix/auth/login/';

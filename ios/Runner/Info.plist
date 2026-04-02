@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cette application utilise le microphone pour la saisie vocale des transactions.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Cette application convertit votre voix en texte pour pre-remplir le formulaire de transaction.</string>
 </dict>
 </plist>
