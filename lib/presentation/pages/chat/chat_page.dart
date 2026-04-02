@@ -29,7 +29,13 @@ class _ChatPageState extends State<ChatPage> {
   void _sendQuestion() {
     final question = _questionController.text.trim();
     if (question.isEmpty) return;
-    context.read<ChatBloc>().add(SendChatMessage(question));
+    final preferredLanguage = Localizations.localeOf(context).languageCode;
+    context.read<ChatBloc>().add(
+          SendChatMessage(
+            question,
+            preferredLanguage: preferredLanguage,
+          ),
+        );
     _questionController.clear();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -231,6 +237,26 @@ class _ChatMessageBubble extends StatelessWidget {
               message.text as String,
               style: TextStyle(color: textColor),
             ),
+            if (!isUser && ((message.detectedLanguage as String).trim().isNotEmpty ||
+                (message.modelUsed as String).trim().isNotEmpty ||
+                (message.fallbackReason as String).trim().isNotEmpty)) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Langue: ${(message.detectedLanguage as String).isEmpty ? '-' : message.detectedLanguage} • Modele: ${(message.modelUsed as String).isEmpty ? '-' : message.modelUsed}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              if ((message.fallbackReason as String).trim().isNotEmpty)
+                Text(
+                  'Fallback: ${message.fallbackReason}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.warning,
+                  ),
+                ),
+            ],
             if (!isUser && (message.citations as List<ChatCitation>).isNotEmpty) ...[
               const SizedBox(height: 10),
               Wrap(
@@ -249,6 +275,24 @@ class _ChatMessageBubble extends StatelessWidget {
                     )
                     .toList(),
               ),
+            ],
+            if (!isUser && (message.limits as List<String>).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...(message.limits as List<String>)
+                  .take(2)
+                  .map(
+                    (limit) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        '- $limit',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ],
             const SizedBox(height: 6),
             Text(

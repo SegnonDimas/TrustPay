@@ -1085,7 +1085,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       final response = await dio.post<Map<String, dynamic>>(
         ApiConfig.openRouterBaseUrl,
         data: <String, dynamic>{
-          'model': 'openai/gpt-4o-mini',
+          'model': 'qwen/qwen3.6-plus-preview:free',
           'temperature': 0,
           'messages': [
             {

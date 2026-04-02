@@ -80,17 +80,19 @@ class DashboardPage extends StatelessWidget {
             return const SizedBox.shrink();
           },
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () async {
-            final created = await context.push('/add-transaction');
-            if (!context.mounted) return;
-            if (created == true) {
-              context.read<HomeBloc>().add(LoadHomeData());
-            }
-          },
-          backgroundColor: AppColors.primary,
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text('Nouvelle transaction', style: TextStyle(color: Colors.white)),
+        floatingActionButton: Builder(
+          builder: (fabContext) => FloatingActionButton.extended(
+            onPressed: () async {
+              final created = await fabContext.push('/add-transaction');
+              if (!fabContext.mounted) return;
+              if (created == true) {
+                fabContext.read<HomeBloc>().add(LoadHomeData());
+              }
+            },
+            backgroundColor: AppColors.primary,
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text('Nouvelle transaction', style: TextStyle(color: Colors.white)),
+          ),
         ),
       ),
     );

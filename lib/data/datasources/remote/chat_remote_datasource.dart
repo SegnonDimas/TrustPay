@@ -12,6 +12,7 @@ abstract class ChatRemoteDataSource {
     int topK,
     String? country,
     String? language,
+    String? preferredLanguage,
   });
 
   Future<List<FundingSource>> getFundingSources();
@@ -40,6 +41,9 @@ ChatResponse parseChatResponse(Map<String, dynamic> json) {
     confidence: double.tryParse(json['confidence']?.toString() ?? '') ?? 0,
     citations: citations,
     limits: limitsRaw.map((item) => item.toString()).toList(),
+    detectedLanguage: json['detected_language']?.toString() ?? '',
+    modelUsed: json['model_used']?.toString() ?? '',
+    fallbackReason: json['fallback_reason']?.toString() ?? '',
   );
 }
 
@@ -80,6 +84,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     int topK = 5,
     String? country,
     String? language,
+    String? preferredLanguage,
   }) async {
     try {
       final payload = <String, dynamic>{
@@ -87,6 +92,8 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         'top_k': topK,
         if (country != null && country.trim().isNotEmpty) 'country': country.trim(),
         if (language != null && language.trim().isNotEmpty) 'language': language.trim(),
+        if (preferredLanguage != null && preferredLanguage.trim().isNotEmpty)
+          'preferred_language': preferredLanguage.trim(),
       };
       final response = await _dio.post<Map<String, dynamic>>(
         ApiConfig.fundingAsk,

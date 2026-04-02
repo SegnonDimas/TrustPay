@@ -14,12 +14,14 @@ class ChatRepositoryImpl implements ChatRepository {
     int topK = 5,
     String? country,
     String? language,
+    String? preferredLanguage,
   }) {
     return remoteDataSource.askFunding(
       question: question,
       topK: topK,
       country: country,
       language: language,
+      preferredLanguage: preferredLanguage,
     );
   }
 

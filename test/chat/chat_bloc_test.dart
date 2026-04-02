@@ -13,6 +13,7 @@ class _SuccessChatRepository implements ChatRepository {
     int topK = 5,
     String? country,
     String? language,
+    String? preferredLanguage,
   }) async {
     return const ChatResponse(
       answer: 'Reponse assistant',
@@ -28,6 +29,9 @@ class _SuccessChatRepository implements ChatRepository {
         ),
       ],
       limits: ['limit'],
+      detectedLanguage: 'fr',
+      modelUsed: 'openai/gpt-4o-mini',
+      fallbackReason: 'preferred_language',
     );
   }
 
@@ -58,6 +62,7 @@ class _ErrorChatRepository implements ChatRepository {
     int topK = 5,
     String? country,
     String? language,
+    String? preferredLanguage,
   }) {
     throw Exception('network error');
   }
@@ -81,6 +86,7 @@ void main() {
       expect(bloc.state.messages.first.isUser, isTrue);
       expect(bloc.state.messages.last.isUser, isFalse);
       expect(bloc.state.messages.last.citations, isNotEmpty);
+      expect(bloc.state.messages.last.detectedLanguage, 'fr');
       expect(bloc.state.isSending, isFalse);
 
       await bloc.close();

@@ -18,6 +18,9 @@ void main() {
           },
         ],
         'limits': ['Base sur sources indexees.'],
+        'detected_language': 'fr',
+        'model_used': 'openai/gpt-4o-mini',
+        'fallback_reason': 'preferred_language',
       });
 
       expect(response.answer, 'Voici des options.');
@@ -25,6 +28,9 @@ void main() {
       expect(response.citations.length, 1);
       expect(response.citations.first.documentId, 7);
       expect(response.limits, isNotEmpty);
+      expect(response.detectedLanguage, 'fr');
+      expect(response.modelUsed, 'openai/gpt-4o-mini');
+      expect(response.fallbackReason, 'preferred_language');
     });
 
     test('parseFundingSources handles list and results formats', () {

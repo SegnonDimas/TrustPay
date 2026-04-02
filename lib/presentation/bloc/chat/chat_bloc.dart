@@ -37,12 +37,19 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     );
 
     try {
-      final response = await chatRepository.askFunding(question: question);
+      final response = await chatRepository.askFunding(
+        question: question,
+        preferredLanguage: event.preferredLanguage,
+      );
       final assistantMessage = ChatMessage(
         text: response.answer,
         isUser: false,
         createdAt: DateTime.now(),
         citations: response.citations,
+        limits: response.limits,
+        detectedLanguage: response.detectedLanguage,
+        modelUsed: response.modelUsed,
+        fallbackReason: response.fallbackReason,
       );
       emit(
         state.copyWith(

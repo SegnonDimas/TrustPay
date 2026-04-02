@@ -7,6 +7,7 @@ abstract class ChatRepository {
     int topK = 5,
     String? country,
     String? language,
+    String? preferredLanguage,
   });
 
   Future<List<FundingSource>> getFundingSources();
