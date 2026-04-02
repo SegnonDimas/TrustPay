@@ -17,15 +17,25 @@ class HomeLoaded extends HomeState {
   final List<Transaction> transactions;
   final List<Account> accounts;
   final double totalBalance;
+  final double totalIncome;
+  final double totalExpense;
 
   const HomeLoaded({
     required this.transactions,
     required this.accounts,
     required this.totalBalance,
+    required this.totalIncome,
+    required this.totalExpense,
   });
 
   @override
-  List<Object?> get props => [transactions, accounts, totalBalance];
+  List<Object?> get props => [
+        transactions,
+        accounts,
+        totalBalance,
+        totalIncome,
+        totalExpense,
+      ];
 }
 
 class HomeError extends HomeState {

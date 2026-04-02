@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import '../../../core/theme/app_colors.dart';
 
 class FinancialScoreWidget extends StatelessWidget {

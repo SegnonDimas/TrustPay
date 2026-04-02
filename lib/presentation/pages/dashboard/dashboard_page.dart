@@ -49,7 +49,12 @@ class DashboardPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildBalanceCard(context, state.totalBalance),
+                      _buildBalanceCard(
+                        context,
+                        state.totalBalance,
+                        state.totalIncome,
+                        state.totalExpense,
+                      ),
                       const SizedBox(height: 24),
                       _buildQuickActions(context),
                       const SizedBox(height: 24),
@@ -70,7 +75,13 @@ class DashboardPage extends StatelessWidget {
           },
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => context.push('/add-transaction'),
+          onPressed: () async {
+            final created = await context.push('/add-transaction');
+            if (!context.mounted) return;
+            if (created == true) {
+              context.read<HomeBloc>().add(LoadHomeData());
+            }
+          },
           backgroundColor: AppColors.primary,
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text('Nouvelle transaction', style: TextStyle(color: Colors.white)),
@@ -79,7 +90,12 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBalanceCard(BuildContext context, double balance) {
+  Widget _buildBalanceCard(
+    BuildContext context,
+    double balance,
+    double totalIncome,
+    double totalExpense,
+  ) {
     final currencyFormat = NumberFormat.currency(locale: 'fr_BJ', symbol: 'FCFA', decimalDigits: 0);
     
     return Container(
@@ -120,9 +136,17 @@ class DashboardPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildBalanceInfo('Revenus', '1,250,000 FCFA', Icons.arrow_upward),
+              _buildBalanceInfo(
+                'Revenus',
+                currencyFormat.format(totalIncome),
+                Icons.arrow_upward,
+              ),
               Container(width: 1, height: 40, color: Colors.white24),
-              _buildBalanceInfo('Dépenses', '450,000 FCFA', Icons.arrow_downward),
+              _buildBalanceInfo(
+                'Dépenses',
+                currencyFormat.format(totalExpense),
+                Icons.arrow_downward,
+              ),
             ],
           ),
         ],
@@ -197,11 +221,11 @@ class DashboardPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Score Financier : 740',
+                    'Vue statistique API',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
-                    'Votre santé financière est excellente !',
+                    'Consultez vos tendances revenus/dépenses en temps réel.',
                     style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],

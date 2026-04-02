@@ -1,54 +1,35 @@
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../datasources/local/transaction_local_datasource.dart';
+import '../datasources/remote/transaction_remote_datasource.dart';
 import '../models/transaction_model.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionLocalDataSource localDataSource;
+  final TransactionRemoteDataSource remoteDataSource;
 
-  TransactionRepositoryImpl({required this.localDataSource});
+  TransactionRepositoryImpl({
+    required this.localDataSource,
+    required this.remoteDataSource,
+  });
 
   @override
   Future<List<Transaction>> getTransactions() async {
-    final localTransactions = await localDataSource.getTransactions();
-    if (localTransactions.isNotEmpty) {
-      return localTransactions;
+    try {
+      final remoteTransactions = await remoteDataSource.getTransactions();
+      await localDataSource.cacheTransactions(remoteTransactions);
+      return remoteTransactions;
+    } catch (_) {
+      final localTransactions = await localDataSource.getTransactions();
+      if (localTransactions.isNotEmpty) {
+        return localTransactions;
+      }
+      rethrow;
     }
-    
-    // Fake initial data if empty
-    final fakeTransactions = [
-      TransactionModel(
-        id: '1',
-        title: 'Supermarché Champion',
-        amount: 15000,
-        date: DateTime.now().subtract(const Duration(days: 1)),
-        type: TransactionType.expense,
-        category: TransactionCategory.food,
-      ),
-      TransactionModel(
-        id: '2',
-        title: 'Salaire Mensuel',
-        amount: 450000,
-        date: DateTime.now().subtract(const Duration(days: 5)),
-        type: TransactionType.income,
-        category: TransactionCategory.salary,
-      ),
-      TransactionModel(
-        id: '3',
-        title: 'Transfert MoMo',
-        amount: 5000,
-        date: DateTime.now(),
-        type: TransactionType.expense,
-        category: TransactionCategory.other,
-      ),
-    ];
-    
-    await localDataSource.cacheTransactions(fakeTransactions);
-    return fakeTransactions;
   }
 
   @override
-  Future<void> addTransaction(Transaction transaction) async {
+  Future<Transaction> addTransaction(Transaction transaction) async {
     final model = TransactionModel(
       id: transaction.id,
       title: transaction.title,
@@ -56,9 +37,37 @@ class TransactionRepositoryImpl implements TransactionRepository {
       date: transaction.date,
       type: transaction.type,
       category: transaction.category,
+      categoryId: transaction.categoryId,
       accountId: transaction.accountId,
+      toAccountId: transaction.toAccountId,
       description: transaction.description,
     );
+
+    final created = await remoteDataSource.createTransaction(model);
+    await localDataSource.addTransaction(created);
+    return created;
+  }
+
+  @override
+  Future<void> updateTransaction(Transaction transaction) async {
+    final model = TransactionModel(
+      id: transaction.id,
+      title: transaction.title,
+      amount: transaction.amount,
+      date: transaction.date,
+      type: transaction.type,
+      category: transaction.category,
+      categoryId: transaction.categoryId,
+      accountId: transaction.accountId,
+      toAccountId: transaction.toAccountId,
+      description: transaction.description,
+    );
+    await remoteDataSource.updateTransaction(model);
     await localDataSource.addTransaction(model);
+  }
+
+  @override
+  Future<void> deleteTransaction(String transactionId) {
+    return remoteDataSource.deleteTransaction(transactionId);
   }
 }

@@ -1,6 +1,13 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../domain/repositories/statistics_repository.dart';
+import '../../../injection_container.dart';
+import '../../bloc/statistics/statistics_bloc.dart';
+import '../../bloc/statistics/statistics_event.dart';
+import '../../bloc/statistics/statistics_state.dart';
 import '../../widgets/statistics/financial_score_widget.dart';
 
 class StatisticsPage extends StatelessWidget {
@@ -8,29 +15,56 @@ class StatisticsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Statistiques'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const FinancialScoreWidget(score: 740),
-            const SizedBox(height: 24),
-            _buildChartSection(context),
-            const SizedBox(height: 24),
-            _buildSummaryCards(),
-            const SizedBox(height: 24),
-            _buildCategoryBreakdown(),
-          ],
+    return BlocProvider(
+      create: (_) => sl<StatisticsBloc>()..add(LoadStatistics()),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Statistiques'),
+        ),
+        body: BlocBuilder<StatisticsBloc, StatisticsState>(
+          builder: (context, state) {
+            if (state is StatisticsLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state is StatisticsError) {
+              return Center(child: Text(state.message));
+            }
+            if (state is! StatisticsLoaded) {
+              return const SizedBox.shrink();
+            }
+
+            final summary = state.summary;
+            final score = _computeScore(summary);
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FinancialScoreWidget(score: score),
+                  const SizedBox(height: 24),
+                  _buildChartSection(context, state.trends),
+                  const SizedBox(height: 24),
+                  _buildSummaryCards(summary),
+                  const SizedBox(height: 24),
+                  _buildCategoryBreakdown(state.categories),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildChartSection(BuildContext context) {
+  double _computeScore(StatisticsSummary summary) {
+    if (summary.totalIncome <= 0) return 400;
+    final ratio = (summary.net / summary.totalIncome).clamp(-1, 1);
+    return ((ratio + 1) * 250 + 300).clamp(0, 1000).toDouble();
+  }
+
+  Widget _buildChartSection(BuildContext context, List<TrendPoint> trends) {
+    final displayPoints = trends.take(4).toList();
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -54,12 +88,13 @@ class StatisticsPage extends StatelessWidget {
                 barTouchData: BarTouchData(enabled: false),
                 titlesData: const FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
-                barGroups: [
-                  _makeGroupData(0, 15, 10),
-                  _makeGroupData(1, 12, 18),
-                  _makeGroupData(2, 18, 5),
-                  _makeGroupData(3, 10, 15),
-                ],
+                barGroups: displayPoints.isEmpty
+                    ? [_makeGroupData(0, 0, 0)]
+                    : displayPoints
+                        .asMap()
+                        .entries
+                        .map((e) => _makeGroupData(e.key, e.value.income, e.value.expense))
+                        .toList(),
               ),
             ),
           ),
@@ -98,12 +133,29 @@ class StatisticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCards() {
+  Widget _buildSummaryCards(StatisticsSummary summary) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'fr_BJ',
+      symbol: 'FCFA',
+      decimalDigits: 0,
+    );
     return Row(
       children: [
-        Expanded(child: _buildInfoCard('Entrées', '1.2M FCFA', AppColors.success)),
+        Expanded(
+          child: _buildInfoCard(
+            'Entrées',
+            currencyFormat.format(summary.totalIncome),
+            AppColors.success,
+          ),
+        ),
         const SizedBox(width: 16),
-        Expanded(child: _buildInfoCard('Sorties', '450K FCFA', AppColors.error)),
+        Expanded(
+          child: _buildInfoCard(
+            'Sorties',
+            currencyFormat.format(summary.totalExpense),
+            AppColors.error,
+          ),
+        ),
       ],
     );
   }
@@ -126,7 +178,8 @@ class StatisticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryBreakdown() {
+  Widget _buildCategoryBreakdown(List<CategoryBreakdown> categories) {
+    final limitedCategories = categories.take(4).toList();
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -138,13 +191,28 @@ class StatisticsPage extends StatelessWidget {
         children: [
           const Text('Répartition par catégorie', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          _buildCategoryRow('Alimentation', 0.45, Colors.orange),
-          _buildCategoryRow('Transport', 0.20, Colors.blue),
-          _buildCategoryRow('Loisirs', 0.15, Colors.purple),
-          _buildCategoryRow('Autres', 0.20, Colors.grey),
+          if (limitedCategories.isEmpty)
+            const Text('Aucune donnée disponible sur la période.')
+          else
+            ...limitedCategories.map(
+              (item) => _buildCategoryRow(
+                item.name,
+                (item.percentage / 100).clamp(0, 1),
+                _categoryColor(item.name),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Color _categoryColor(String name) {
+    final value = name.toLowerCase();
+    if (value.contains('aliment')) return Colors.orange;
+    if (value.contains('transport')) return Colors.blue;
+    if (value.contains('loisir')) return Colors.purple;
+    if (value.contains('sant')) return Colors.red;
+    return Colors.grey;
   }
 
   Widget _buildCategoryRow(String label, double percentage, Color color) {

@@ -6,7 +6,9 @@ class Account extends Equatable {
   final String id;
   final String name;
   final double balance;
+  final String currency;
   final AccountType type;
+  final String? provider;
   final String? iconPath;
   final String? accountNumber;
 
@@ -14,11 +16,22 @@ class Account extends Equatable {
     required this.id,
     required this.name,
     required this.balance,
+    this.currency = 'XOF',
     required this.type,
+    this.provider,
     this.iconPath,
     this.accountNumber,
   });
 
   @override
-  List<Object?> get props => [id, name, balance, type, iconPath, accountNumber];
+  List<Object?> get props => [
+        id,
+        name,
+        balance,
+        currency,
+        type,
+        provider,
+        iconPath,
+        accountNumber,
+      ];
 }

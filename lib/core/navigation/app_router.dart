@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../injection_container.dart';
 import '../../presentation/pages/dashboard/dashboard_page.dart';
+import '../../presentation/pages/accounts/accounts_page.dart';
 import '../../presentation/pages/onboarding/onboarding_page.dart';
 import '../../presentation/pages/splash/splash_page.dart';
 import '../../presentation/pages/auth/login_page.dart';
@@ -9,8 +12,10 @@ import '../../presentation/pages/main_shell.dart';
 import '../../presentation/pages/qr_scanner/qr_scanner_page.dart';
 import '../../presentation/pages/qr_scanner/generate_qr_page.dart';
 import '../../presentation/pages/transactions/add_transaction_page.dart';
+import '../../presentation/pages/categories/categories_page.dart';
 import '../../presentation/pages/statistics/statistics_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
+import '../../presentation/bloc/transaction/transaction_bloc.dart';
 import '../constants/app_routes.dart';
 
 class AppRouter {
@@ -40,7 +45,15 @@ class AppRouter {
       GoRoute(
         path: '/add-transaction',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AddTransactionPage(),
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<TransactionBloc>(),
+          child: const AddTransactionPage(),
+        ),
+      ),
+      GoRoute(
+        path: '/categories',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CategoriesPage(),
       ),
       GoRoute(
         path: '/generate-qr',
@@ -57,7 +70,7 @@ class AppRouter {
           ),
           GoRoute(
             path: AppRoutes.accounts,
-            builder: (context, state) => const PlaceholderPage(title: 'Mes Comptes'),
+            builder: (context, state) => const AccountsPage(),
           ),
           GoRoute(
             path: AppRoutes.qrScanner,
@@ -75,17 +88,4 @@ class AppRouter {
       ),
     ],
   );
-}
-
-class PlaceholderPage extends StatelessWidget {
-  final String title;
-  const PlaceholderPage({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text('Écran $title en cours de développement')),
-    );
-  }
 }

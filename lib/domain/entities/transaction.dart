@@ -13,7 +13,9 @@ class Transaction extends Equatable {
   final DateTime date;
   final TransactionType type;
   final TransactionCategory category;
+  final String? categoryId;
   final String? accountId;
+  final String? toAccountId;
   final String? description;
 
   const Transaction({
@@ -23,10 +25,23 @@ class Transaction extends Equatable {
     required this.date,
     required this.type,
     required this.category,
+    this.categoryId,
     this.accountId,
+    this.toAccountId,
     this.description,
   });
 
   @override
-  List<Object?> get props => [id, title, amount, date, type, category, accountId, description];
+  List<Object?> get props => [
+        id,
+        title,
+        amount,
+        date,
+        type,
+        category,
+        categoryId,
+        accountId,
+        toAccountId,
+        description,
+      ];
 }
