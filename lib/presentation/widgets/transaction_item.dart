@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../domain/entities/sync_status.dart';
 import '../../../domain/entities/transaction.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -47,6 +48,18 @@ class TransactionItem extends StatelessWidget {
                   DateFormat('dd MMM yyyy').format(transaction.date),
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
+                if (transaction.syncStatus != SyncStatus.synced)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      _syncLabel(transaction.syncStatus),
+                      style: TextStyle(
+                        color: _syncColor(transaction.syncStatus),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -85,6 +98,38 @@ class TransactionItem extends StatelessWidget {
       case TransactionCategory.salary: return Colors.green;
       case TransactionCategory.business: return Colors.purple;
       default: return Colors.grey;
+    }
+  }
+
+  String _syncLabel(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.pendingCreate:
+      case SyncStatus.pendingUpdate:
+      case SyncStatus.pendingDelete:
+        return 'En attente de synchronisation';
+      case SyncStatus.syncing:
+        return 'Synchronisation...';
+      case SyncStatus.conflict:
+        return 'Conflit de synchronisation';
+      case SyncStatus.error:
+        return 'Erreur de synchronisation';
+      case SyncStatus.synced:
+        return '';
+    }
+  }
+
+  Color _syncColor(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.conflict:
+      case SyncStatus.error:
+        return AppColors.error;
+      case SyncStatus.pendingCreate:
+      case SyncStatus.pendingUpdate:
+      case SyncStatus.pendingDelete:
+      case SyncStatus.syncing:
+        return Colors.orange;
+      case SyncStatus.synced:
+        return AppColors.textSecondary;
     }
   }
 }

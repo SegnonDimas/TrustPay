@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'core/navigation/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'injection_container.dart' as di;
+import 'data/sync/app_sync_coordinator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,7 @@ void main() async {
   
   // Initialize Dependency Injection
   await di.init();
+  await di.sl<AppSyncCoordinator>().start();
   
   runApp(const TrustPayApp());
 }

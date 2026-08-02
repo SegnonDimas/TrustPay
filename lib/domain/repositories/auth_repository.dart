@@ -13,6 +13,7 @@ abstract class AuthRepository {
   });
 
   Future<User> getProfile();
+  Future<User?> getCachedProfile();
   Future<void> logout();
   Future<bool> hasSession();
 }

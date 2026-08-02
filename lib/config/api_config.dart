@@ -1,5 +1,6 @@
 class ApiConfig {
   static const String baseUrl = 'https://finetrack-22e5.onrender.com';
+  // static const String baseUrl = 'http://192.168.1.100:8000'; // local host
   static const String apiPrefix = '/api';
   static const String openRouterBaseUrl =
       'https://openrouter.ai/api/v1/chat/completions';
@@ -13,6 +14,7 @@ class ApiConfig {
   static const String profile = '$apiPrefix/auth/profile/';
 
   // Core
+  static const String syncInitial = '$apiPrefix/sync/initial/';
   static const String accounts = '$apiPrefix/accounts/';
   static const String mobileMoneyWallets =
       '$apiPrefix/accounts/mobile-money-wallets/';

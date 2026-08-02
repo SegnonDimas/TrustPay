@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'sync_status.dart';
 
 enum TransactionType { income, expense, transfer }
 enum TransactionCategory { 
@@ -17,6 +18,12 @@ class Transaction extends Equatable {
   final String? accountId;
   final String? toAccountId;
   final String? description;
+  final String? serverId;
+  final SyncStatus syncStatus;
+  final bool isDeleted;
+  final DateTime? lastModifiedAt;
+  final DateTime? lastSyncedAt;
+  final String? syncError;
 
   const Transaction({
     required this.id,
@@ -29,6 +36,12 @@ class Transaction extends Equatable {
     this.accountId,
     this.toAccountId,
     this.description,
+    this.serverId,
+    this.syncStatus = SyncStatus.synced,
+    this.isDeleted = false,
+    this.lastModifiedAt,
+    this.lastSyncedAt,
+    this.syncError,
   });
 
   @override
@@ -43,5 +56,11 @@ class Transaction extends Equatable {
         accountId,
         toAccountId,
         description,
+        serverId,
+        syncStatus,
+        isDeleted,
+        lastModifiedAt,
+        lastSyncedAt,
+        syncError,
       ];
 }

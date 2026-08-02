@@ -1,7 +1,12 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'core/network/dio_client.dart';
+import 'data/datasources/local/account_local_datasource.dart';
 import 'data/datasources/local/auth_local_datasource.dart';
+import 'data/datasources/local/category_local_datasource.dart';
+import 'data/datasources/local/sync_operation_local_datasource.dart';
+import 'data/datasources/local/sync_snapshot_local_datasource.dart';
 import 'data/datasources/local/transaction_local_datasource.dart';
 import 'data/datasources/remote/account_remote_datasource.dart';
 import 'data/datasources/remote/accounting_remote_datasource.dart';
@@ -9,8 +14,10 @@ import 'data/datasources/remote/auth_remote_datasource.dart';
 import 'data/datasources/remote/category_remote_datasource.dart';
 import 'data/datasources/remote/chat_remote_datasource.dart';
 import 'data/datasources/remote/export_remote_datasource.dart';
+import 'data/datasources/remote/initial_sync_remote_datasource.dart';
 import 'data/datasources/remote/statistics_remote_datasource.dart';
 import 'data/datasources/remote/transaction_remote_datasource.dart';
+import 'data/local/local_finance_analytics.dart';
 import 'data/repositories/account_repository_impl.dart';
 import 'data/repositories/accounting_repository_impl.dart';
 import 'data/repositories/auth_repository_impl.dart';
@@ -19,6 +26,12 @@ import 'data/repositories/chat_repository_impl.dart';
 import 'data/repositories/export_repository_impl.dart';
 import 'data/repositories/statistics_repository_impl.dart';
 import 'data/repositories/transaction_repository_impl.dart';
+import 'data/sync/account_sync_service.dart';
+import 'data/sync/app_sync_coordinator.dart';
+import 'data/sync/app_sync_status_service.dart';
+import 'data/sync/category_sync_service.dart';
+import 'data/sync/initial_sync_service.dart';
+import 'data/sync/transaction_sync_service.dart';
 import 'domain/repositories/account_repository.dart';
 import 'domain/repositories/accounting_repository.dart';
 import 'domain/repositories/auth_repository.dart';
@@ -45,7 +58,12 @@ Future<void> init() async {
     ),
   );
   sl.registerFactory(() => TransactionBloc(transactionRepository: sl()));
-  sl.registerFactory(() => AuthBloc(authRepository: sl()));
+  sl.registerFactory(
+    () => AuthBloc(
+      authRepository: sl(),
+      initialSyncService: sl(),
+    ),
+  );
   sl.registerFactory(
     () => StatisticsBloc(
       statisticsRepository: sl(),
@@ -62,13 +80,25 @@ Future<void> init() async {
     ),
   );
   sl.registerLazySingleton<AccountRepository>(
-    () => AccountRepositoryImpl(remoteDataSource: sl()),
+    () => AccountRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+      syncService: sl(),
+    ),
   );
   sl.registerLazySingleton<AccountingRepository>(
-    () => AccountingRepositoryImpl(remoteDataSource: sl()),
+    () => AccountingRepositoryImpl(
+      remoteDataSource: sl(),
+      transactionLocalDataSource: sl(),
+      analytics: sl(),
+    ),
   );
   sl.registerLazySingleton<CategoryRepository>(
-    () => CategoryRepositoryImpl(remoteDataSource: sl()),
+    () => CategoryRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+      syncService: sl(),
+    ),
   );
   sl.registerLazySingleton<ChatRepository>(
     () => ChatRepositoryImpl(remoteDataSource: sl()),
@@ -80,15 +110,44 @@ Future<void> init() async {
     () => TransactionRepositoryImpl(
       localDataSource: sl(),
       remoteDataSource: sl(),
+      syncService: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => InitialSyncService(
+      remoteDataSource: sl(),
+      authLocalDataSource: sl(),
+      accountLocalDataSource: sl(),
+      categoryLocalDataSource: sl(),
+      transactionLocalDataSource: sl(),
+      syncSnapshotLocalDataSource: sl(),
     ),
   );
   sl.registerLazySingleton<StatisticsRepository>(
-    () => StatisticsRepositoryImpl(remoteDataSource: sl()),
+    () => StatisticsRepositoryImpl(
+      remoteDataSource: sl(),
+      transactionLocalDataSource: sl(),
+      accountLocalDataSource: sl(),
+      categoryLocalDataSource: sl(),
+      analytics: sl(),
+    ),
   );
 
   // Data sources
+  sl.registerLazySingleton<AccountLocalDataSource>(
+    () => AccountLocalDataSourceImpl(),
+  );
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<CategoryLocalDataSource>(
+    () => CategoryLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<SyncOperationLocalDataSource>(
+    () => SyncOperationLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<SyncSnapshotLocalDataSource>(
+    () => SyncSnapshotLocalDataSourceImpl(),
   );
   sl.registerLazySingleton<TransactionLocalDataSource>(
     () => TransactionLocalDataSourceImpl(),
@@ -116,6 +175,56 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<ExportRemoteDataSource>(
     () => ExportRemoteDataSourceImpl(sl()),
+  );
+  sl.registerLazySingleton<InitialSyncRemoteDataSource>(
+    () => InitialSyncRemoteDataSourceImpl(sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => Connectivity(),
+  );
+
+  sl.registerLazySingleton(() => const LocalFinanceAnalytics());
+  sl.registerLazySingleton(() => AppSyncStatusService());
+
+  sl.registerLazySingleton(
+    () => CategorySyncService(
+      localDataSource: sl(),
+      operationLocalDataSource: sl(),
+      remoteDataSource: sl(),
+      connectivity: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(
+    () => AccountSyncService(
+      localDataSource: sl(),
+      operationLocalDataSource: sl(),
+      remoteDataSource: sl(),
+      connectivity: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(
+    () => TransactionSyncService(
+      localDataSource: sl(),
+      accountLocalDataSource: sl(),
+      categoryLocalDataSource: sl(),
+      operationLocalDataSource: sl(),
+      remoteDataSource: sl(),
+      connectivity: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(
+    () => AppSyncCoordinator(
+      connectivity: sl(),
+      authLocalDataSource: sl(),
+      statusService: sl(),
+      categorySyncService: sl(),
+      accountSyncService: sl(),
+      transactionSyncService: sl(),
+    ),
   );
 
   // Core

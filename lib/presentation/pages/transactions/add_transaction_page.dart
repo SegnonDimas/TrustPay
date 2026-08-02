@@ -2,19 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../../config/api_config.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../domain/entities/transaction.dart';
 import '../../../domain/entities/account.dart';
+import '../../../domain/entities/category.dart';
+import '../../../domain/entities/transaction.dart';
 import '../../../domain/repositories/account_repository.dart';
+import '../../../domain/repositories/category_repository.dart';
 import '../../../injection_container.dart';
 import '../../bloc/transaction/transaction_bloc.dart';
 import '../../bloc/transaction/transaction_event.dart';
@@ -71,16 +73,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Future<List<_ApiCategory>> _loadCategories() async {
-    final dio = sl<Dio>();
-    final response = await dio.get<dynamic>(ApiConfig.categories);
-    final data = response.data;
-    final list = data is Map<String, dynamic> && data['results'] is List
-        ? data['results'] as List<dynamic>
-        : (data as List<dynamic>? ?? const []);
-    return list
+    final categories = await sl<CategoryRepository>().getCategories();
+    return categories
         .map(
-          (e) => _ApiCategory.fromJson(
-            Map<String, dynamic>.from(e as Map),
+          (category) => _ApiCategory(
+            id: category.id,
+            name: category.name,
+            categoryType: category.type == CategoryType.income
+                ? 'income'
+                : 'expense',
           ),
         )
         .toList();
@@ -1347,16 +1348,4 @@ class _ApiCategory {
     required this.name,
     required this.categoryType,
   });
-
-  factory _ApiCategory.fromJson(Map<String, dynamic> json) {
-    final rawType =
-        ((json['category_type'] as String?) ?? 'expense').trim().toLowerCase();
-    final normalizedType =
-        rawType.contains('income') ? 'income' : 'expense';
-    return _ApiCategory(
-      id: json['id'].toString(),
-      name: (json['name'] as String?) ?? '',
-      categoryType: normalizedType,
-    );
-  }
 }

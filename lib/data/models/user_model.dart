@@ -22,4 +22,21 @@ class UserModel extends User {
       phoneNumber: profile?['phone_number'] as String?,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    final nameParts = name.trim().split(RegExp(r'\s+'));
+    final firstName = nameParts.isEmpty ? '' : nameParts.first;
+    final lastName =
+        nameParts.length <= 1 ? '' : nameParts.sublist(1).join(' ');
+
+    return {
+      'id': id,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'profile': {
+        'phone_number': phoneNumber,
+      },
+    };
+  }
 }

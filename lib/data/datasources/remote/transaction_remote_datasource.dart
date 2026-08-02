@@ -10,6 +10,9 @@ abstract class TransactionRemoteDataSource {
   Future<TransactionModel> createTransaction(TransactionModel transaction);
   Future<void> updateTransaction(TransactionModel transaction);
   Future<void> deleteTransaction(String transactionId);
+  Future<List<Map<String, dynamic>>> bulkSyncTransactions(
+    List<TransactionModel> transactions,
+  );
 }
 
 class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
@@ -154,7 +157,7 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
           ? data['results'] as List<dynamic>
           : (data as List<dynamic>? ?? const []);
       return list
-          .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+          .map((e) => TransactionModel.fromRemoteJson(Map<String, dynamic>.from(e)))
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -192,6 +195,29 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
   Future<void> deleteTransaction(String transactionId) async {
     try {
       await _dio.delete<void>('${ApiConfig.transactions}$transactionId/');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> bulkSyncTransactions(
+    List<TransactionModel> transactions,
+  ) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '${ApiConfig.transactions}bulk-sync/',
+        data: {
+          'transactions': transactions
+              .map((transaction) => transaction.toBulkSyncJson())
+              .toList(),
+        },
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      final results = (data['results'] as List<dynamic>? ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
+      return results;
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/sync/app_sync_status.dart';
+import '../../data/sync/app_sync_status_service.dart';
+import '../../injection_container.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -10,15 +13,83 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 900;
+    final statusService = sl<AppSyncStatusService>();
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          if (isDesktop) _buildNavigationRail(context),
-          Expanded(child: child),
+          Row(
+            children: [
+              if (isDesktop) _buildNavigationRail(context),
+              Expanded(child: child),
+            ],
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: StreamBuilder<AppSyncStatus>(
+                stream: statusService.stream,
+                initialData: statusService.currentStatus,
+                builder: (context, snapshot) {
+                  final status = snapshot.data ?? AppSyncStatus.idle;
+                  if (status == AppSyncStatus.idle) {
+                    return const SizedBox.shrink();
+                  }
+                  return _buildSyncBadge(status);
+                },
+              ),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: isDesktop ? null : _buildBottomNavigationBar(context),
+    );
+  }
+
+  Widget _buildSyncBadge(AppSyncStatus status) {
+    final (label, color) = switch (status) {
+      AppSyncStatus.syncing => ('Synchronisation...', Colors.orange),
+      AppSyncStatus.synced => ('Synchronisé', Colors.green),
+      AppSyncStatus.offline => ('Hors ligne', Colors.grey),
+      AppSyncStatus.error => ('Erreur sync', AppColors.error),
+      AppSyncStatus.idle => ('', Colors.transparent),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

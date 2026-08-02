@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../domain/entities/transaction.dart';
-import '../../bloc/transaction/transaction_bloc.dart';
-import '../../bloc/transaction/transaction_event.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class QrScannerPage extends StatefulWidget {
   const QrScannerPage({super.key});
@@ -114,19 +110,6 @@ class _QrScannerPageState extends State<QrScannerPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      final transaction = Transaction(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        title: 'Paiement QR - $merchantName',
-                        amount: amount,
-                        date: DateTime.now(),
-                        type: TransactionType.expense,
-                        category: TransactionCategory.shopping,
-                      );
-                      
-                      // Accéder au bloc via le contexte parent ou une instance globale si nécessaire
-                      // Ici on assume que le bloc est disponible plus haut
-                      // context.read<TransactionBloc>().add(AddTransaction(transaction));
-                      
                       Navigator.pop(context);
                       context.pop(); // Retour au dashboard
                       ScaffoldMessenger.of(context).showSnackBar(

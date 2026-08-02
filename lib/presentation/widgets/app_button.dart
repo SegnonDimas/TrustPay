@@ -4,44 +4,47 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 
-class AppButton extends StatefulWidget {
-  Function()? onTap;
-  Color backgroundColor;
-  Color foregroundColor;
-  double? width;
-  double? height;
-  Widget? child;
-   AppButton({super.key,
-   this.onTap,
-   this.backgroundColor = AppColors.primary,
-   this.foregroundColor = Colors.white,
-     this.width,
-   this.height,
-   this.child,
-   });
+class AppButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final double? width;
+  final double? height;
+  final Widget? child;
 
-  @override
-  State<AppButton> createState() => _AppButtonState();
-}
+  const AppButton({
+    super.key,
+    this.onTap,
+    this.backgroundColor = AppColors.primary,
+    this.foregroundColor = Colors.white,
+    this.width,
+    this.height,
+    this.child,
+  });
 
-class _AppButtonState extends State<AppButton> {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
+    final resolvedHeight = height ??
+        ((Platform.isAndroid || Platform.isIOS)
+            ? MediaQuery.of(context).size.height * 0.06
+            : MediaQuery.of(context).size.height * 0.08);
 
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
         alignment: Alignment.center,
-        width: widget.width ?? double.infinity,
-        height: widget.height!=null? widget.height : (Platform.isAndroid || Platform.isIOS)? MediaQuery.of(context).size.height * 0.06 : MediaQuery.of(context).size.height * 0.08,
+        width: width ?? double.infinity,
+        height: resolvedHeight,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration:
-
-        BoxDecoration(
-          color: AppColors.primary,
+        decoration: BoxDecoration(
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: widget.child),
-      );
+        child: DefaultTextStyle.merge(
+          style: TextStyle(color: foregroundColor),
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
+    );
   }
 }

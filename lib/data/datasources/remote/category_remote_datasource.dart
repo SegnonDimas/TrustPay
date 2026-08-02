@@ -8,6 +8,9 @@ abstract class CategoryRemoteDataSource {
   Future<List<CategoryModel>> getCategories();
   Future<CategoryModel> createCategory(CategoryModel category);
   Future<void> deleteCategory(String id);
+  Future<List<Map<String, dynamic>>> bulkSyncCategories(
+    List<CategoryModel> categories,
+  );
 }
 
 class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
@@ -24,7 +27,7 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
           ? data['results'] as List<dynamic>
           : (data as List<dynamic>? ?? const []);
       return list
-          .map((e) => CategoryModel.fromJson(Map<String, dynamic>.from(e)))
+          .map((e) => CategoryModel.fromRemoteJson(Map<String, dynamic>.from(e)))
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -48,6 +51,28 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
   Future<void> deleteCategory(String id) async {
     try {
       await _dio.delete<void>('${ApiConfig.categories}$id/');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> bulkSyncCategories(
+    List<CategoryModel> categories,
+  ) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '${ApiConfig.categories}bulk-sync/',
+        data: {
+          'categories': categories
+              .map((category) => category.toBulkSyncJson())
+              .toList(),
+        },
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      return (data['results'] as List<dynamic>? ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

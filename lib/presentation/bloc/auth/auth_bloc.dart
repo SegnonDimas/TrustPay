@@ -1,13 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/repositories/auth_repository.dart';
+import '../../../data/sync/initial_sync_service.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository authRepository;
+  final InitialSyncService initialSyncService;
 
-  AuthBloc({required this.authRepository}) : super(const AuthState()) {
+  AuthBloc({
+    required this.authRepository,
+    required this.initialSyncService,
+  }) : super(const AuthState()) {
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
     on<LoadProfileRequested>(_onLoadProfileRequested);
@@ -24,6 +29,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         identifier: event.identifier,
         password: event.password,
       );
+      await initialSyncService.hydrateInitialData();
       final user = await authRepository.getProfile();
       emit(state.copyWith(status: AuthStatus.authenticated, user: user));
     } catch (e) {
@@ -49,6 +55,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         identifier: event.email,
         password: event.password,
       );
+      await initialSyncService.hydrateInitialData();
       final user = await authRepository.getProfile();
       emit(state.copyWith(status: AuthStatus.authenticated, user: user));
     } catch (e) {
@@ -70,9 +77,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(state.copyWith(status: AuthStatus.unauthenticated));
         return;
       }
-      final user = await authRepository.getProfile();
-      emit(state.copyWith(status: AuthStatus.authenticated, user: user));
+      try {
+        await initialSyncService.hydrateInitialData();
+        final user = await authRepository.getProfile();
+        emit(state.copyWith(status: AuthStatus.authenticated, user: user));
+      } catch (_) {
+        final cachedUser = await authRepository.getCachedProfile();
+        if (cachedUser != null) {
+          emit(state.copyWith(status: AuthStatus.authenticated, user: cachedUser));
+          return;
+        }
+        emit(state.copyWith(status: AuthStatus.unauthenticated));
+      }
     } catch (_) {
+      final cachedUser = await authRepository.getCachedProfile();
+      if (cachedUser != null) {
+        emit(state.copyWith(status: AuthStatus.authenticated, user: cachedUser));
+        return;
+      }
       emit(state.copyWith(status: AuthStatus.unauthenticated));
     }
   }

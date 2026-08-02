@@ -15,6 +15,9 @@ abstract class AccountRemoteDataSource {
   });
   Future<void> updateAccount(AccountModel account);
   Future<void> deleteAccount(String id);
+  Future<List<Map<String, dynamic>>> bulkSyncAccounts(
+    List<AccountModel> accounts,
+  );
 }
 
 class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
@@ -58,7 +61,7 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
           ? data['results'] as List<dynamic>
           : (data as List<dynamic>? ?? const []);
       final accounts = list
-          .map((e) => AccountModel.fromJson(Map<String, dynamic>.from(e)))
+          .map((e) => AccountModel.fromRemoteJson(Map<String, dynamic>.from(e)))
           .toList();
 
       try {
@@ -174,6 +177,26 @@ class AccountRemoteDataSourceImpl implements AccountRemoteDataSource {
   Future<void> deleteAccount(String id) async {
     try {
       await _dio.delete<void>('${ApiConfig.accounts}$id/');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> bulkSyncAccounts(
+    List<AccountModel> accounts,
+  ) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '${ApiConfig.accounts}bulk-sync/',
+        data: {
+          'accounts': accounts.map((account) => account.toBulkSyncJson()).toList(),
+        },
+      );
+      final data = response.data ?? const <String, dynamic>{};
+      return (data['results'] as List<dynamic>? ?? const [])
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

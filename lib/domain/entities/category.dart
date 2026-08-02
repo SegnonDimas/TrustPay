@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'sync_status.dart';
 
 enum CategoryType { income, expense }
 
@@ -9,6 +10,12 @@ class Category extends Equatable {
   final String color;
   final String icon;
   final bool isDefault;
+  final String? serverId;
+  final SyncStatus syncStatus;
+  final bool isDeleted;
+  final DateTime? lastModifiedAt;
+  final DateTime? lastSyncedAt;
+  final String? syncError;
 
   const Category({
     required this.id,
@@ -17,8 +24,27 @@ class Category extends Equatable {
     required this.color,
     required this.icon,
     required this.isDefault,
+    this.serverId,
+    this.syncStatus = SyncStatus.synced,
+    this.isDeleted = false,
+    this.lastModifiedAt,
+    this.lastSyncedAt,
+    this.syncError,
   });
 
   @override
-  List<Object?> get props => [id, name, type, color, icon, isDefault];
+  List<Object?> get props => [
+        id,
+        name,
+        type,
+        color,
+        icon,
+        isDefault,
+        serverId,
+        syncStatus,
+        isDeleted,
+        lastModifiedAt,
+        lastSyncedAt,
+        syncError,
+      ];
 }

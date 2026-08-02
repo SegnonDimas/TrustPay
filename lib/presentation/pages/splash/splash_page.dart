@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../domain/repositories/auth_repository.dart';
+import '../../../injection_container.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -19,9 +21,9 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      context.go(AppRoutes.onboarding);
-    }
+    final hasSession = await sl<AuthRepository>().hasSession();
+    if (!mounted) return;
+    context.go(hasSession ? AppRoutes.dashboard : AppRoutes.onboarding);
   }
 
   @override
